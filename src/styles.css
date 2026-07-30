@@ -77,6 +77,20 @@ a {
   font-size: 13px;
   color: #d2e0dc;
 }
+.nav-links button,
+.text-link {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+}
+.nav-links button {
+  font-size: 13px;
+  color: #d2e0dc;
+}
 .nav-links a:hover,
 .login:hover {
   color: #dbe985;
@@ -775,6 +789,14 @@ h2 {
   line-height: 1.7;
   color: #456864;
 }
+.form-success {
+  margin: 16px 0 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #eef5d2;
+  color: #315a45 !important;
+  font-weight: 600;
+}
 .page-card ul {
   padding-left: 20px;
   color: #456864;
@@ -825,6 +847,41 @@ h2 {
 .auth-link button:hover {
   color: #2b5d55;
 }
+.catalog-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 24px 0;
+}
+.catalog-filters button {
+  border: 1px solid #cbd9cc;
+  border-radius: 999px;
+  background: #fff;
+  color: #315a54;
+  cursor: pointer;
+  padding: 8px 13px;
+  font: 600 12px "DM Sans", sans-serif;
+}
+.catalog-filters button.active,
+.catalog-filters button:hover { background: #173c38; border-color: #173c38; color: #f8f7f1; }
+.item-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(225px, 1fr)); gap: 16px; }
+.item-card { border: 1px solid #dbe5d8; border-radius: 15px; padding: 20px; background: #fbfcf8; display: flex; flex-direction: column; align-items: flex-start; }
+.item-emoji { width: 55px; height: 55px; display: grid; place-items: center; border-radius: 14px; background: #e7f0c8; font-size: 28px; margin-bottom: 18px; }
+.item-category { color: #698451; font: 500 10px "DM Mono", monospace; letter-spacing: .8px; text-transform: uppercase; }
+.item-card h3 { font: 600 22px "Playfair Display", serif; color: #173c38; margin: 7px 0; }
+.item-card p { font-size: 13px; margin: 0 0 12px; }
+.item-card small { color: #657a75; font-size: 11px; line-height: 1.4; margin-bottom: 18px; }
+.item-card .button { margin-top: auto; width: 100%; padding: 12px; }
+.item-card .button:disabled { background: #d7ddda; cursor: not-allowed; transform: none; }
+.reservation-panel { position: relative; margin-top: 28px; padding: 28px; border-radius: 16px; background: #e8f0d2; }
+.reservation-panel h3 { margin: 0; font: 600 28px "Playfair Display", serif; color: #173c38; }
+.close-button { position: absolute; right: 18px; top: 14px; color: #173c38; background: transparent; border: 0; cursor: pointer; font-size: 30px; }
+.reservation-form { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 22px; }
+.reservation-form label { display: grid; gap: 7px; color: #173c38; font-size: 12px; font-weight: 700; }
+.reservation-form input, .reservation-form textarea { border: 1px solid #b8c8b4; border-radius: 8px; background: #fff; padding: 11px; font: 14px "DM Sans", sans-serif; }
+.reservation-form textarea { min-height: 80px; resize: vertical; }
+.wide-label { grid-column: 1 / -1; }
+.reservation-form .button { width: max-content; border: 0; cursor: pointer; }
 @media (max-width: 800px) {
   .page-nav {
     flex-direction: column;
@@ -833,4 +890,11 @@ h2 {
   .page-nav-links {
     width: 100%;
   }
+  .page-card {
+    padding: 30px 24px;
+    margin: 28px auto 40px;
+    border-radius: 16px;
+  }
+  .reservation-form { grid-template-columns: 1fr; }
+  .wide-label { grid-column: auto; }
 }

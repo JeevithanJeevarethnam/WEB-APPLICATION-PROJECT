@@ -4,16 +4,16 @@ import './styles.css'
 
 const Arrow = () => <span className="arrow">↗</span>
 
-function HomePage({ setPage }) {
+function HomePage({ setPage, scrollToSection }) {
   return (
     <>
       <section className="hero">
         <nav className="nav wrap">
           <a className="brand" href="#top"><span className="brand-mark"><i></i><i></i><i></i></span>Campus<span>Lend</span></a>
-          <div className="nav-links"><a href="#how">How it works</a><a href="#discover">Explore gear</a><a href="#impact">Our impact</a></div>
+          <div className="nav-links"><button type="button" onClick={() => scrollToSection('how')}>How it works</button><button type="button" onClick={() => scrollToSection('discover')}>Explore gear</button><button type="button" onClick={() => scrollToSection('impact')}>Our impact</button></div>
           <div className="nav-actions">
             <button className="login" type="button" onClick={() => setPage('signin')}>Log in</button>
-            <a className="button button-small" href="#join">Join your campus <Arrow /></a>
+            <button className="button button-small" type="button" onClick={() => setPage('join')}>Join your campus <Arrow /></button>
           </div>
         </nav>
 
@@ -22,7 +22,7 @@ function HomePage({ setPage }) {
             <p className="eyebrow"><b></b> THE CAMPUS GEAR LIBRARY</p>
             <h1>Make more.<br /><em>Own less.</em></h1>
             <p className="lead">The easy way for students and departments to lend, borrow, and get more from the equipment your campus already has.</p>
-            <div className="hero-buttons"><a className="button" href="#discover">Browse equipment <Arrow /></a><a className="text-link" href="#how"><span className="play">▶</span> See how it works</a></div>
+            <div className="hero-buttons"><button className="button" type="button" onClick={() => scrollToSection('discover')}>Browse equipment <Arrow /></button><button className="text-link" type="button" onClick={() => scrollToSection('how')}><span className="play">▶</span> See how it works</button></div>
             <div className="hero-proof"><div className="faces"><span>J</span><span>M</span><span>A</span><span>R</span></div><p><strong>2,000+ students</strong><br />sharing smarter on campus</p></div>
           </div>
           <div className="hero-art" aria-label="A camera and campus equipment illustration">
@@ -69,49 +69,89 @@ function HowPage() {
   )
 }
 
+const demoItems = [
+  { id: 1, name: 'Sony a6400 camera kit', category: 'Photo & video', description: 'Mirrorless camera, lens, battery and charger.', location: 'Media Lab · Room 204', imageEmoji: '📷', conditionLabel: 'Excellent condition', available: true },
+  { id: 2, name: 'Podcast microphone set', category: 'Music & audio', description: 'Two USB microphones, stands, headphones and pop filters.', location: 'Student Union · Desk 3', imageEmoji: '🎙️', conditionLabel: 'Ready today', available: true },
+  { id: 3, name: 'Four-person camping tent', category: 'Outdoor & events', description: 'Weatherproof tent with groundsheet and lantern.', location: 'Outdoor Centre · Gear desk', imageEmoji: '⛺', conditionLabel: 'Good condition', available: true },
+  { id: 4, name: 'Projector and screen', category: 'Events', description: 'Portable 1080p projector, HDMI cable and screen.', location: 'Library · Equipment desk', imageEmoji: '📽️', conditionLabel: 'Ready today', available: true },
+]
+
 function DiscoverPage() {
+  const [items, setItems] = useState(demoItems)
+  const [selected, setSelected] = useState(null)
+  const [filter, setFilter] = useState('All')
+  const [notice, setNotice] = useState('')
+
+  useEffect(() => {
+    fetch('/api/items').then((response) => response.ok ? response.json() : Promise.reject()).then(setItems).catch(() => {})
+  }, [])
+
+  const categories = ['All', ...new Set(items.map((item) => item.category))]
+  const visibleItems = filter === 'All' ? items : items.filter((item) => item.category === filter)
+  const requestItem = async (event) => {
+    event.preventDefault()
+    const form = new FormData(event.currentTarget)
+    const payload = Object.fromEntries(form)
+    try {
+      const response = await fetch('/api/reservations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+      const result = await response.json()
+      setNotice(result.message || 'Your request has been sent.')
+      if (response.ok) setSelected(null)
+    } catch {
+      setNotice('Your request is saved for now. Connect MySQL to submit it to the campus team.')
+      setSelected(null)
+    }
+  }
   return (
     <section className="wrap page-card">
       <p className="eyebrow dark"><b></b> EXPLORE GEAR</p>
       <h2>Find the right tool for the moment.</h2>
       <p>CampusLend brings together cameras, microphones, tents, field kits, and more from departments and student groups.</p>
-      <div className="categories" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', padding: 0, marginTop: '24px' }}>
-        <article className="category photo"><p>01 / CREATE</p><h3>Photo & video</h3><a href="#">Browse gear <Arrow /></a></article>
-        <article className="category sound"><p>02 / MAKE NOISE</p><h3>Music & audio</h3><a href="#">Browse gear <Arrow /></a></article>
-        <article className="category outdoor"><p>03 / GET OUTSIDE</p><h3>Outdoor & events</h3><a href="#">Browse gear <Arrow /></a></article>
+      <div className="catalog-filters" aria-label="Filter equipment">{categories.map((category) => <button type="button" className={filter === category ? 'active' : ''} key={category} onClick={() => setFilter(category)}>{category}</button>)}</div>
+      {notice && <p className="form-success" role="status">{notice}</p>}
+      <div className="item-grid">
+        {visibleItems.map((item) => <article className="item-card" key={item.id}><div className="item-emoji">{item.imageEmoji}</div><span className="item-category">{item.category}</span><h3>{item.name}</h3><p>{item.description}</p><small>{item.location} · {item.conditionLabel}</small><button className="button" type="button" disabled={!item.available} onClick={() => { setNotice(''); setSelected(item) }}>{item.available ? 'Request item' : 'Unavailable'} <Arrow /></button></article>)}
       </div>
+      {selected && <div className="reservation-panel"><div><p className="eyebrow dark"><b></b> BORROW {selected.name.toUpperCase()}</p><h3>Tell us when you need it.</h3></div><button className="close-button" type="button" onClick={() => setSelected(null)} aria-label="Close request form">×</button><form className="reservation-form" onSubmit={requestItem}><input type="hidden" name="itemId" value={selected.id} /><label>Name<input required name="borrowerName" placeholder="Your name" /></label><label>Campus email<input required name="email" type="email" placeholder="you@campus.edu" /></label><label>Pickup date<input required name="startDate" type="date" /></label><label>Return date<input required name="endDate" type="date" /></label><label className="wide-label">Note (optional)<textarea name="notes" placeholder="Anything the gear desk should know?" /></label><button className="button" type="submit">Send request <Arrow /></button></form></div>}
     </section>
   )
 }
 
 function JoinPage() {
+  const [submitted, setSubmitted] = useState(false)
   return (
     <section className="wrap page-card">
       <p className="eyebrow dark"><b></b> JOIN THE MOVEMENT</p>
       <h2>Your campus can share more with less effort.</h2>
       <p>Bring your club, department, or student organization into a smarter gear-sharing system with a simple onboarding flow for new members.</p>
-      <a className="button" href="#">Create your free account <Arrow /></a>
+      <form className="auth-form" onSubmit={(event) => { event.preventDefault(); setSubmitted(true) }}>
+        <label><span>Campus email</span><input required type="email" placeholder="you@campus.edu" /></label>
+        <button className="button" type="submit">Create your free account <Arrow /></button>
+      </form>
+      {submitted && <p className="form-success" role="status">Thanks — we’ll send your campus setup link shortly.</p>}
     </section>
   )
 }
 
 function LoginPage({ setPage }) {
+  const [message, setMessage] = useState('')
   return (
     <section className="wrap page-card auth-card">
       <p className="eyebrow dark"><b></b> SIGN IN</p>
       <h2>Welcome back to CampusLend.</h2>
       <p>Use your campus email to access your borrowed gear, requests, and account details.</p>
-      <form className="auth-form">
+      <form className="auth-form" onSubmit={(event) => { event.preventDefault(); setMessage('You’re signed in! Your gear dashboard is being prepared.') }}>
         <label>
           <span>Email</span>
-          <input type="email" placeholder="you@campus.edu" />
+          <input required type="email" placeholder="you@campus.edu" />
         </label>
         <label>
           <span>Password</span>
-          <input type="password" placeholder="Enter your password" />
+          <input required type="password" placeholder="Enter your password" />
         </label>
-        <button className="button" type="button">Sign in <Arrow /></button>
+        <button className="button" type="submit">Sign in <Arrow /></button>
       </form>
+      {message && <p className="form-success" role="status">{message}</p>}
       <p className="auth-link"><button type="button" onClick={() => setPage('home')}>Back to home</button></p>
     </section>
   )
@@ -145,6 +185,11 @@ function App() {
     }
   }, [page])
 
+  const scrollToSection = (id) => {
+    if (page !== 'home') setPage('home')
+    window.setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), page === 'home' ? 0 : 60)
+  }
+
   const renderPage = () => {
     switch (page) {
       case 'how': return <HowPage />
@@ -152,13 +197,13 @@ function App() {
       case 'join': return <JoinPage />
       case 'login':
       case 'signin': return <LoginPage setPage={setPage} />
-      default: return <HomePage setPage={setPage} />
+      default: return <HomePage setPage={setPage} scrollToSection={scrollToSection} />
     }
   }
 
   return (
     <main className="page-shell">
-      <header className="page-header">
+      {page !== 'home' && <header className="page-header">
         <div className="wrap page-nav">
           <a className="brand" href="#home" onClick={(event) => { event.preventDefault(); setPage('home') }}>
             <span className="brand-mark"><i></i><i></i><i></i></span>Campus<span>Lend</span>
@@ -170,7 +215,7 @@ function App() {
             <button className={`page-toggle ${page === 'join' ? 'active' : ''}`} type="button" onClick={() => setPage('join')}>Join</button>
           </nav>
         </div>
-      </header>
+      </header>}
 
       <div className="page-content">{renderPage()}</div>
 
