@@ -1,22 +1,14 @@
 {
-  "name": "campus-lend",
+  "name": "campus-lend-api",
   "private": true,
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
     "server": "node server.js"
   },
   "dependencies": {
-    "@vitejs/plugin-react": "latest",
-    "vite": "latest",
-    "react": "latest",
-    "react-dom": "latest",
+    "dotenv": "^16.6.1",
     "express": "^5.1.0",
-    "mysql2": "^3.14.4",
-    "dotenv": "^16.6.1"
-  },
-  "devDependencies": {}
+    "mysql2": "^3.14.4"
+  }
 }
