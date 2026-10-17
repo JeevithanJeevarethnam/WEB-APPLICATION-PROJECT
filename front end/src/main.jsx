@@ -1,8 +1,27 @@
-import { StrictMode, useEffect, useState } from 'react'
+import { StrictMode, createContext, useContext, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import './styles.css'
 
 const Arrow = () => <span className="arrow">↗</span>
+const AuthContext = createContext(null)
+
+async function api(path, options = {}) {
+  const response = await fetch(path, { credentials: 'include', ...options })
+  const body = response.status === 204 ? null : await response.json().catch(() => ({}))
+  if (!response.ok) throw new Error(body.message || 'Request failed.')
+  return body
+}
+
+function AuthProvider({ children }) {
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const csrf = async () => (await api('/api/auth/csrf')).csrfToken
+  useEffect(() => { api('/api/auth/me').then(({ user: nextUser }) => setUser(nextUser)).catch(() => setUser(null)).finally(() => setLoading(false)) }, [])
+  const login = async (email, password) => { const token = await csrf(); const result = await api('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token }, body: JSON.stringify({ email, password }) }); setUser(result.user); return result.user }
+  const logout = async () => { const token = await csrf(); await api('/api/auth/logout', { method: 'POST', headers: { 'X-CSRF-Token': token } }); setUser(null) }
+  return <AuthContext.Provider value={{ user, loading, login, logout, csrf }}>{children}</AuthContext.Provider>
+}
+const useAuth = () => useContext(AuthContext)
 
 function HomePage({ setPage, scrollToSection }) {
   return (
@@ -117,57 +136,42 @@ function DiscoverPage() {
   )
 }
 
-function JoinPage() {
-  const [submitted, setSubmitted] = useState(false)
-  return (
-    <section className="wrap page-card">
-      <p className="eyebrow dark"><b></b> JOIN THE MOVEMENT</p>
-      <h2>Your campus can share more with less effort.</h2>
-      <p>Bring your club, department, or student organization into a smarter gear-sharing system with a simple onboarding flow for new members.</p>
-      <form className="auth-form" onSubmit={(event) => { event.preventDefault(); setSubmitted(true) }}>
-        <label><span>Campus email</span><input required type="email" placeholder="you@campus.edu" /></label>
-        <button className="button" type="submit">Create your free account <Arrow /></button>
-      </form>
-      {submitted && <p className="form-success" role="status">Thanks — we’ll send your campus setup link shortly.</p>}
-    </section>
-  )
+function RegisterPage({ setPage }) {
+  const [universities, setUniversities] = useState([]); const [selectedUniversityId, setSelectedUniversityId] = useState(''); const [error, setError] = useState(''); const [message, setMessage] = useState(''); const [submitting, setSubmitting] = useState(false)
+  useEffect(() => { api('/api/auth/universities').then(setUniversities).catch(() => setError('Registration is unavailable until the campus directory is configured.')) }, [])
+  const submit = async (event) => { event.preventDefault(); setError(''); setMessage(''); setSubmitting(true); const payload = Object.fromEntries(new FormData(event.currentTarget)); try { const token = await (await api('/api/auth/csrf')).csrfToken; const result = await api('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token }, body: JSON.stringify(payload) }); setMessage(result.user.verificationState === 'verified' ? 'Your campus email has been verified. You can now sign in.' : 'Registration received. A campus administrator must verify your account before it can be approved.') } catch (nextError) { setError(nextError.message) } finally { setSubmitting(false) } }
+  const selectedUniversity = universities.find((university) => String(university.id) === selectedUniversityId)
+  return <section className="wrap page-card auth-card"><p className="eyebrow dark"><b></b> CREATE ACCOUNT</p><h2>Join your campus gear library.</h2><p>Use your student details. An unsupported or self-declared student ID does not verify your identity.</p><form className="auth-form" onSubmit={submit}>
+    <label><span>Full name</span><input required name="fullName" autoComplete="name" /></label>
+    <label><span>University</span><select required name="universityId" value={selectedUniversityId} onChange={(event) => setSelectedUniversityId(event.target.value)}> <option value="" disabled>Select university</option>{universities.map((university) => <option key={university.id} value={university.id}>{university.name}</option>)}</select></label>
+    <label><span>Campus</span><select required name="campusId" defaultValue=""><option value="" disabled>Select campus</option>{selectedUniversity?.campuses.map((campus) => <option key={campus.id} value={campus.id}>{campus.name}</option>)}</select></label>
+    <label><span>Student email</span><input required name="email" type="email" autoComplete="email" /></label><label><span>Student ID (if supported)</span><input name="studentId" /></label>
+    <label><span>Password</span><input required name="password" type="password" minLength="12" autoComplete="new-password" /></label><label><span>Confirm password</span><input required name="confirmPassword" type="password" minLength="12" autoComplete="new-password" /></label>
+    <button className="button" disabled={submitting || !universities.length} type="submit">{submitting ? 'Creating account…' : 'Create account'} <Arrow /></button></form>{error && <p className="form-error" role="alert">{error}</p>}{message && <p className="form-success" role="status">{message}</p>}<p className="auth-link"><button type="button" onClick={() => setPage('signin')}>Already have an account? Sign in</button></p></section>
 }
 
 function LoginPage({ setPage }) {
-  const [message, setMessage] = useState('')
-  return (
-    <section className="wrap page-card auth-card">
-      <p className="eyebrow dark"><b></b> SIGN IN</p>
-      <h2>Welcome back to CampusLend.</h2>
-      <p>Use your campus email to access your borrowed gear, requests, and account details.</p>
-      <form className="auth-form" onSubmit={(event) => { event.preventDefault(); setMessage('You’re signed in! Your gear dashboard is being prepared.') }}>
-        <label>
-          <span>Email</span>
-          <input required type="email" placeholder="you@campus.edu" />
-        </label>
-        <label>
-          <span>Password</span>
-          <input required type="password" placeholder="Enter your password" />
-        </label>
-        <button className="button" type="submit">Sign in <Arrow /></button>
-      </form>
-      {message && <p className="form-success" role="status">{message}</p>}
-      <p className="auth-link"><button type="button" onClick={() => setPage('home')}>Back to home</button></p>
-    </section>
-  )
+  const { login } = useAuth(); const [error, setError] = useState(''); const [submitting, setSubmitting] = useState(false)
+  const submit = async (event) => { event.preventDefault(); setError(''); setSubmitting(true); const values = new FormData(event.currentTarget); try { await login(values.get('email'), values.get('password')); setPage('profile') } catch (nextError) { setError(nextError.message) } finally { setSubmitting(false) } }
+  return <section className="wrap page-card auth-card"><p className="eyebrow dark"><b></b> SIGN IN</p><h2>Welcome back to CampusLend.</h2><p>Use your campus email to access your account.</p><form className="auth-form" onSubmit={submit}><label><span>Email</span><input required name="email" type="email" autoComplete="email" /></label><label><span>Password</span><input required name="password" type="password" autoComplete="current-password" /></label><button className="button" disabled={submitting} type="submit">{submitting ? 'Signing in…' : 'Sign in'} <Arrow /></button></form>{error && <p className="form-error" role="alert">{error}</p>}<p className="auth-link"><button type="button" onClick={() => setPage('forgot-password')}>Forgot password?</button> · <button type="button" onClick={() => setPage('join')}>Create account</button></p></section>
 }
+
+function ForgotPasswordPage({ setPage }) { const [message, setMessage] = useState(''); const [error, setError] = useState(''); const submit = async (event) => { event.preventDefault(); try { const email = new FormData(event.currentTarget).get('email'); const token = (await api('/api/auth/csrf')).csrfToken; const result = await api('/api/auth/forgot-password', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token }, body: JSON.stringify({ email }) }); setMessage(result.message) } catch (nextError) { setError(nextError.message) } }; return <section className="wrap page-card auth-card"><p className="eyebrow dark"><b></b> PASSWORD HELP</p><h2>Reset your password.</h2><p>Enter your account email. Password-reset delivery requires an approved email service configuration.</p><form className="auth-form" onSubmit={submit}><label><span>Email</span><input required name="email" type="email" autoComplete="email" /></label><button className="button" type="submit">Request reset <Arrow /></button></form>{error && <p className="form-error" role="alert">{error}</p>}{message && <p className="form-success" role="status">{message}</p>}<p className="auth-link"><button type="button" onClick={() => setPage('signin')}>Back to sign in</button></p></section> }
+
+function ProtectedRoute({ children, setPage }) { const { user, loading } = useAuth(); if (loading) return <section className="wrap page-card"><p>Checking your session…</p></section>; if (!user) return <section className="wrap page-card"><h2>Please sign in.</h2><button className="button" type="button" onClick={() => setPage('signin')}>Sign in <Arrow /></button></section>; return children }
+function ProfilePage({ setPage }) { const { user, logout } = useAuth(); const [error, setError] = useState(''); const signOut = async () => { try { await logout(); setPage('home') } catch (nextError) { setError(nextError.message) } }; return <section className="wrap page-card auth-card"><p className="eyebrow dark"><b></b> YOUR PROFILE</p><h2>{user.fullName}</h2><p>{user.email}</p><p>Role: {user.role.replace('_', ' ')} · Verification: {user.verificationState}</p>{error && <p className="form-error" role="alert">{error}</p>}<button className="button" type="button" onClick={signOut}>Log out</button></section> }
 
 function App() {
   const [page, setPage] = useState(() => {
     if (typeof window === 'undefined') return 'home'
     const hash = window.location.hash.replace('#', '')
-    return ['home', 'how', 'discover', 'join', 'login', 'signin'].includes(hash) ? hash : 'home'
+    return ['home', 'how', 'discover', 'join', 'login', 'signin', 'forgot-password', 'profile'].includes(hash) ? hash : 'home'
   })
 
   useEffect(() => {
     const syncFromHash = () => {
       const hash = window.location.hash.replace('#', '')
-      if (['home', 'how', 'discover', 'join', 'login', 'signin'].includes(hash)) {
+      if (['home', 'how', 'discover', 'join', 'login', 'signin', 'forgot-password', 'profile'].includes(hash)) {
         setPage(hash)
       } else {
         setPage('home')
@@ -194,7 +198,9 @@ function App() {
     switch (page) {
       case 'how': return <HowPage />
       case 'discover': return <DiscoverPage />
-      case 'join': return <JoinPage />
+      case 'join': return <RegisterPage setPage={setPage} />
+      case 'forgot-password': return <ForgotPasswordPage setPage={setPage} />
+      case 'profile': return <ProtectedRoute setPage={setPage}><ProfilePage setPage={setPage} /></ProtectedRoute>
       case 'login':
       case 'signin': return <LoginPage setPage={setPage} />
       default: return <HomePage setPage={setPage} scrollToSection={scrollToSection} />
@@ -232,4 +238,4 @@ function App() {
   )
 }
 
-createRoot(document.getElementById('root')).render(<StrictMode><App /></StrictMode>)
+createRoot(document.getElementById('root')).render(<StrictMode><AuthProvider><App /></AuthProvider></StrictMode>)
