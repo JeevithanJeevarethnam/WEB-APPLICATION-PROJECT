@@ -1,0 +1,5 @@
+/* Keep authentication pages readable at every viewport size. */
+.auth h1 { font-size: clamp(2.5rem, 5vw, 3.7rem); line-height: 1.08; max-width: 12ch; }
+.auth textarea { display: block; width: 100%; min-height: 90px; margin-top: 6px; padding: 12px; border: 1px solid #cddbd5; border-radius: 8px; resize: vertical; }
+.auth .wide { grid-column: 1 / -1; }
+.success { color: #285e43; background: #edf7e7; padding: 10px; border-radius: 8px; }
