@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "server": "node server.js",
-    "check": "node --check server.js && node --check src/app.js && node --check src/controllers/equipment-controller.js && node --check src/services/equipment-service.js && node --check src/validators/equipment-validator.js && node --check src/routes/api-routes.js",
-    "test": "node test/reservation-validator.test.js && node test/auth-logic.test.js && node test/equipment-validator.test.js"
+    "check": "node --check server.js && node --check src/app.js && node --check src/controllers/equipment-controller.js && node --check src/controllers/item-controller.js && node --check src/services/equipment-service.js && node --check src/services/item-service.js && node --check src/validators/equipment-validator.js && node --check src/validators/marketplace-validator.js && node --check src/routes/api-routes.js",
+    "test": "node test/reservation-validator.test.js && node test/auth-logic.test.js && node test/equipment-validator.test.js && node test/marketplace-validator.test.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
