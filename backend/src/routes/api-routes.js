@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { health } from '../controllers/health-controller.js'
 import { getItems, itemDetails, marketplace } from '../controllers/item-controller.js'
 import { createReservation } from '../controllers/reservation-controller.js'
+import { createReview, getDashboard, getNotifications, read } from '../controllers/dashboard-controller.js'
 import { create as createBooking, decision, details, handover, list } from '../controllers/booking-controller.js'
 import { csrf, currentUser, forgotPassword, login, logout, register, universities, updateUserVerification } from '../controllers/auth-controller.js'
 import { requireAuth, requireCsrf, requireRole } from '../middleware/auth.js'
@@ -18,6 +19,10 @@ apiRouter.get('/bookings/incoming', requireAuth, list('incoming'))
 apiRouter.get('/bookings/:id', requireAuth, details)
 apiRouter.patch('/bookings/:id/decision', requireCsrf, requireAuth, decision)
 apiRouter.post('/bookings/:id/handover', requireCsrf, requireAuth, handover)
+apiRouter.get('/dashboard', requireAuth, getDashboard)
+apiRouter.get('/notifications', requireAuth, getNotifications)
+apiRouter.patch('/notifications/:id/read', requireCsrf, requireAuth, read)
+apiRouter.post('/bookings/:id/reviews', requireCsrf, requireAuth, createReview)
 apiRouter.get('/auth/csrf', csrf); apiRouter.get('/auth/universities', universities); apiRouter.post('/auth/register', requireCsrf, register); apiRouter.post('/auth/login', loginRateLimit, requireCsrf, login); apiRouter.post('/auth/logout', requireCsrf, requireAuth, logout); apiRouter.get('/auth/me', requireAuth, currentUser); apiRouter.post('/auth/forgot-password', requireCsrf, forgotPassword)
 apiRouter.patch('/auth/admin/users/:userId/verification', requireCsrf, requireAuth, requireRole('campus_admin', 'super_admin'), updateUserVerification)
 const imageTypes = new Set(['image/jpeg', 'image/png', 'image/webp'])
