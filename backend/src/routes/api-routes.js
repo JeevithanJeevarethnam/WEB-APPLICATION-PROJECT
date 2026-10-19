@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { health } from '../controllers/health-controller.js'
 import { getItems, itemDetails, marketplace } from '../controllers/item-controller.js'
 import { createReservation } from '../controllers/reservation-controller.js'
+import { moderate, overview, pending, verify } from '../controllers/admin-controller.js'
 import { createReview, getDashboard, getNotifications, read } from '../controllers/dashboard-controller.js'
 import { create as createBooking, decision, details, handover, list } from '../controllers/booking-controller.js'
 import { csrf, currentUser, forgotPassword, login, logout, register, universities, updateUserVerification } from '../controllers/auth-controller.js'
@@ -23,6 +24,10 @@ apiRouter.get('/dashboard', requireAuth, getDashboard)
 apiRouter.get('/notifications', requireAuth, getNotifications)
 apiRouter.patch('/notifications/:id/read', requireCsrf, requireAuth, read)
 apiRouter.post('/bookings/:id/reviews', requireCsrf, requireAuth, createReview)
+apiRouter.get('/admin/overview', requireAuth, requireRole('campus_admin','super_admin'), overview)
+apiRouter.get('/admin/students/pending', requireAuth, requireRole('campus_admin','super_admin'), pending)
+apiRouter.patch('/admin/students/:id/verification', requireCsrf, requireAuth, requireRole('campus_admin','super_admin'), verify)
+apiRouter.patch('/admin/items/:id/moderation', requireCsrf, requireAuth, requireRole('campus_admin','super_admin'), moderate)
 apiRouter.get('/auth/csrf', csrf); apiRouter.get('/auth/universities', universities); apiRouter.post('/auth/register', requireCsrf, register); apiRouter.post('/auth/login', loginRateLimit, requireCsrf, login); apiRouter.post('/auth/logout', requireCsrf, requireAuth, logout); apiRouter.get('/auth/me', requireAuth, currentUser); apiRouter.post('/auth/forgot-password', requireCsrf, forgotPassword)
 apiRouter.patch('/auth/admin/users/:userId/verification', requireCsrf, requireAuth, requireRole('campus_admin', 'super_admin'), updateUserVerification)
 const imageTypes = new Set(['image/jpeg', 'image/png', 'image/webp'])

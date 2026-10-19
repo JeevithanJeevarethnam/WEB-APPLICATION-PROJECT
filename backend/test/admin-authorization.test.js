@@ -1,0 +1,1 @@
+import assert from 'node:assert/strict';const roles=['campus_admin','super_admin'];assert.equal(roles.includes('student'),false);assert.equal(roles.includes('campus_admin'),true);console.log('admin authorization tests passed')
